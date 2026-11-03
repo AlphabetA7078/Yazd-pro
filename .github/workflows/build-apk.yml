@@ -1,0 +1,47 @@
+
+name: Build Yazd PDR APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Extract ZIP
+        run: |
+          mkdir project
+          unzip -q YAZD_PRO_ANDROID_PROJECT-1.zip -d project
+
+      - name: Find and Build Android Project
+        run: |
+          WRAPPER=$(find project -name gradlew -type f | head -n 1)
+          if [ -z "$WRAPPER" ]; then
+            echo "Gradle wrapper not found in ZIP"
+            exit 1
+          fi
+          ROOT=$(dirname "$WRAPPER")
+          cd "$ROOT"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Prepare APK
+        run: |
+          mkdir -p output
+          find project -path "*/build/outputs/apk/debug/*.apk" -exec cp {} output/ \;
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yazd-PDR-APK
+          path: output/*.apk
