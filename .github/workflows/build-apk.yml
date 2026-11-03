@@ -18,30 +18,26 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Extract ZIP
+      - name: Extract project
         run: |
           mkdir project
           unzip -q YAZD_PRO_ANDROID_PROJECT-1.zip -d project
 
-      - name: Find and Build Android Project
+      - name: Locate Gradle project
         run: |
-          WRAPPER=$(find project -name gradlew -type f | head -n 1)
-          if [ -z "$WRAPPER" ]; then
-            echo "Gradle wrapper not found in ZIP"
-            exit 1
-          fi
-          ROOT=$(dirname "$WRAPPER")
-          cd "$ROOT"
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          find project -name settings.gradle.kts -print
 
-      - name: Prepare APK
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK
         run: |
-          mkdir -p output
-          find project -path "*/build/outputs/apk/debug/*.apk" -exec cp {} output/ \;
+          ROOT=$(dirname "$(find project -name settings.gradle.kts -print -quit)")
+          cd "$ROOT"
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Yazd-PDR-APK
-          path: output/*.apk
+          path: project/**/build/outputs/apk/debug/*.apk
